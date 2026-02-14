@@ -1,26 +1,21 @@
 /* ============================================
-   COSMO WOLF - SYSTEM v1.0
-   TERMINAL-FIRST RETRO CRT EXPERIENCE
+   COSMO WOLF - TERMINAL PORTFOLIO v1.0
+   INTERACTIVE TERMINAL WITH CRT EFFECTS
    ============================================ */
 
-/* Root color palette (Cyan/Green CRT theme) */
+/* CSS Variables - Color Scheme */
 :root {
-  --color-primary: #001100;
-  --color-secondary: #003300;
-  --color-accent: #00ff00;
-  --color-accent-dim: #00aa00;
-  --color-accent-bright: #44ff44;
-  --color-success: #00ff00;
-  --color-error: #ff4444;
-  --color-warning: #ffff00;
-  --color-text: #00ff00;
+  --color-primary: #00ff41;
+  --color-secondary: #55efc4;
+  --color-bg: #0f0f0f;
+  --color-text: #00ff41;
   --color-text-dim: #00aa00;
-  --color-bg: #000000;
-  --font-retro: "Press Start 2P", monospace;
+  --color-error: #ff4444;
+  --color-success: #00ff41;
   --font-mono: "Courier Prime", "Courier New", monospace;
 }
 
-/* Global styles */
+/* Global Styles */
 * {
   margin: 0;
   padding: 0;
@@ -28,41 +23,37 @@
 }
 
 html, body {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: var(--color-bg);
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0a0a0a 0%, #0f0f0f 50%, #080808 100%);
   color: var(--color-text);
   font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.4;
-  position: fixed;
-  top: 0;
-  left: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ============================================
-   FULL-SCREEN TERMINAL (MAIN INTERFACE)
+   TERMINAL WRAPPER - MAIN CONTAINER
    ============================================ */
 
-.terminal-screen {
+.terminal-wrapper {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #000000 0%, #001100 50%, #000000 100%);
-  color: var(--color-text);
   display: flex;
-  flex-direction: column;
-  z-index: 1;
-  overflow: hidden;
-  box-shadow: inset 0 0 40px rgba(0, 255, 0, 0.2);
-  letter-spacing: 0.5px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(10px);
 }
 
-/* CRT Scan-line effect */
-.crt-scanlines {
+/* CRT Scanlines - Overlay Effect */
+.scanlines {
   position: fixed;
   top: 0;
   left: 0;
@@ -72,12 +63,12 @@ html, body {
   background: 
     repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.15),
-      rgba(0, 0, 0, 0.15) 1px,
-      transparent 1px,
-      transparent 3px
+      rgba(0, 0, 0, 0.12),
+      rgba(0, 0, 0, 0.12) 2px,
+      transparent 2px,
+      transparent 4px
     );
-  z-index: 999;
+  z-index: 1000;
   animation: flicker 0.15s infinite;
 }
 
@@ -86,175 +77,212 @@ html, body {
     opacity: 0.98;
   }
   50% {
-    opacity: 0.95;
+    opacity: 0.94;
   }
 }
 
-/* CRT Bend effect (optional, adds curved edges) */
-.terminal-screen::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: 20px solid rgba(0, 20, 0, 0.5);
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 255, 0, 0.1);
-  pointer-events: none;
-  z-index: 998;
-}
+/* ============================================
+   TERMINAL CONTAINER
+   ============================================ */
 
-/* Terminal content (scrollable area) */
-.terminal-content {
+.terminal {
+  width: 100%;
+  max-width: 900px;
+  height: 100%;
+  max-height: 600px;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 20px;
-  gap: 10px;
-  overflow: hidden;
+  background: linear-gradient(to bottom, rgba(20, 20, 20, 0.95), rgba(15, 15, 15, 0.98));
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 65, 0.3),
+    0 0 40px rgba(0, 255, 65, 0.1),
+    inset 0 0 30px rgba(0, 255, 65, 0.05);
   position: relative;
   z-index: 2;
+  overflow: hidden;
 }
 
-/* Terminal Header */
+/* Neon Glow Effect */
+.terminal::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--color-primary), var(--color-secondary), var(--color-primary));
+  border-radius: 8px;
+  opacity: 0.1;
+  z-index: -1;
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* ============================================
+   TERMINAL HEADER
+   ============================================ */
+
 .terminal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid var(--color-accent);
-  padding: 10px 0;
-  min-height: 30px;
-  font-family: var(--font-retro);
-  font-size: 8px;
-  color: var(--color-accent-bright);
-  text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
-  letter-spacing: 2px;
-}
-
-.terminal-title {
+  padding: 15px 20px;
+  border-bottom: 2px solid var(--color-primary);
+  background: rgba(0, 50, 20, 0.3);
+  font-family: var(--font-mono);
   font-weight: bold;
+  font-size: 12px;
+  letter-spacing: 2px;
+  user-select: none;
 }
 
-.status-bar {
-  display: flex;
-  gap: 15px;
-  font-size: 7px;
+.header-title {
+  color: var(--color-primary);
+  text-shadow: 
+    0 0 10px var(--color-primary),
+    0 0 20px rgba(0, 255, 65, 0.5);
+  animations: glow 2s ease-in-out infinite;
 }
 
-.status-item {
-  color: var(--color-accent);
-  animation: glow 2s ease-in-out infinite;
+.header-status {
+  color: var(--color-secondary);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes glow {
+@keyframes pulse {
   0%, 100% {
-    color: var(--color-accent);
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    opacity: 1;
+    text-shadow: 0 0 5px var(--color-secondary);
   }
   50% {
-    color: var(--color-accent-bright);
-    text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+    opacity: 0.6;
+    text-shadow: 0 0 15px var(--color-secondary);
   }
 }
 
-/* Terminal output (scrollable history) */
+/* ============================================
+   TERMINAL BODY
+   ============================================ */
+
+.terminal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(to bottom, rgba(10, 10, 10, 0.9), rgba(5, 5, 5, 0.95));
+}
+
+/* Terminal Output - Scrollable Content */
 .terminal-output {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px;
-  font-size: 9px;
-  color: var(--color-text);
-  font-family: var(--font-mono);
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  margin-bottom: 15px;
+  font-size: 14px;
   line-height: 1.6;
-  text-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  color: var(--color-text);
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.2);
 }
 
+/* Scrollbar Styling */
 .terminal-output::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 
 .terminal-output::-webkit-scrollbar-track {
-  background: rgba(0, 100, 0, 0.1);
+  background: rgba(0, 100, 50, 0.1);
 }
 
 .terminal-output::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 0, 0.4);
-  border-radius: 0;
+  background: var(--color-primary);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
 }
 
 .terminal-output::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 0, 0.7);
+  background: var(--color-secondary);
 }
 
-.terminal-line {
-  margin-bottom: 0;
-  line-height: 1.6;
+/* Output Lines */
+.output-line {
+  margin-bottom: 8px;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.terminal-line.command {
-  color: var(--color-accent-bright);
+.output-line.command {
+  color: var(--color-secondary);
   font-weight: bold;
 }
 
-.terminal-line.output {
+.output-line.output {
   color: var(--color-text);
 }
 
-.terminal-line.info {
-  color: var(--color-accent-dim);
-}
-
-.terminal-line.error {
+.output-line.error {
   color: var(--color-error);
 }
 
-.terminal-line.success {
+.output-line.success {
   color: var(--color-success);
 }
 
-.terminal-line.directory {
-  color: var(--color-accent);
-  font-weight: bold;
-}
-
-.terminal-line.file {
+.output-line.info {
   color: var(--color-text-dim);
 }
 
-/* Terminal input row (fixed at bottom) */
-.terminal-input-row {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   INPUT LINE
+   ============================================ */
+
+.input-line {
   display: flex;
   align-items: center;
-  padding: 10px;
-  border-top: 2px solid var(--color-accent);
-  background: rgba(0, 51, 0, 0.3);
   gap: 8px;
-  min-height: 30px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(0, 255, 65, 0.3);
+  position: relative;
 }
 
-.terminal-prompt {
-  color: var(--color-accent-bright);
+.prompt {
+  color: var(--color-secondary);
   font-weight: bold;
-  font-family: var(--font-retro);
-  font-size: 8px;
-  letter-spacing: 1px;
+  white-space: nowrap;
+  user-select: none;
   flex-shrink: 0;
-  animation: promptBlink 1s step-end infinite;
+  animation: promptGlow 1.5s ease-in-out infinite;
 }
 
-@keyframes promptBlink {
-  0%, 49% {
-    color: var(--color-accent-bright);
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+@keyframes promptGlow {
+  0%, 100% {
+    color: var(--color-secondary);
+    text-shadow: 0 0 5px var(--color-secondary);
   }
-  50%, 100% {
-    color: var(--color-accent-dim);
-    text-shadow: none;
+  50% {
+    color: var(--color-primary);
+    text-shadow: 0 0 10px var(--color-primary);
   }
 }
 
@@ -262,112 +290,119 @@ html, body {
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--color-accent-bright);
+  color: var(--color-primary);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 14px;
   outline: none;
-  letter-spacing: 0.5px;
+  caret-color: var(--color-primary);
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
 }
 
 .terminal-input::placeholder {
   color: var(--color-text-dim);
 }
 
-/* Cursor styling */
-.terminal-input {
-  caret-color: var(--color-accent-bright);
-}
-
-/* ============================================
-   SPROUT VIEWPORT WINDOW (Secondary)
-   ============================================ */
-
-.viewport-window {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 320px;
-  height: 240px;
-  border: 3px solid var(--color-accent);
+/* Cursor - Blinking effect */
+.cursor {
+  width: 2px;
+  height: 1.2em;
   background: var(--color-primary);
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  z-index: 100;
-  overflow: hidden;
-}
-
-.viewport-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
-  background: rgba(0, 51, 0, 0.5);
-  border-bottom: 2px solid var(--color-accent);
-  font-family: var(--font-retro);
-  font-size: 7px;
-  color: var(--color-accent);
-  min-height: 25px;
-}
-
-.viewport-title {
-  font-weight: bold;
-}
-
-.viewport-status {
-  color: var(--color-error);
+  display: none;
+  margin-left: 2px;
+  box-shadow: 0 0 5px var(--color-primary);
   animation: blink 1s step-end infinite;
 }
 
-@keyframes blink {
-  0%, 50% {
-    color: var(--color-error);
-  }
-  51%, 100% {
-    color: transparent;
-  }
+.input-line:has(.terminal-input:focus) .cursor {
+  display: inline-block;
 }
 
-.game-viewport {
-  flex: 1;
-  background: var(--color-bg);
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
-  display: block;
-  width: 100%;
-  height: 100%;
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
 }
 
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
 
-@media (max-height: 600px) {
-  .viewport-window {
-    width: 240px;
-    height: 180px;
+@media (max-width: 768px) {
+  .terminal-wrapper {
+    padding: 10px;
   }
-  
+
+  .terminal {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 4px;
+  }
+
+  .terminal-header {
+    padding: 12px 15px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .terminal-body {
+    padding: 15px;
+  }
+
   .terminal-output {
-    font-size: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .terminal-input {
+    font-size: 13px;
+  }
+
+  .prompt {
+    font-size: 12px;
   }
 }
 
-@media (max-width: 800px) {
-  .viewport-window {
-    width: 240px;
-    height: 180px;
-    bottom: 10px;
-    right: 10px;
+@media (max-width: 480px) {
+  .terminal-wrapper {
+    padding: 5px;
+  }
+
+  .terminal-header {
+    padding: 10px 12px;
+    font-size: 10px;
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+
+  .terminal-body {
+    padding: 12px;
+  }
+
+  .terminal-output {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+  }
+
+  .terminal-input {
+    font-size: 12px;
+  }
+
+  .prompt {
+    font-size: 11px;
   }
 }
 
+/* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .crt-scanlines,
-  .status-item,
-  .terminal-prompt,
-  .viewport-status {
+  .scanlines,
+  .header-status,
+  .prompt,
+  .cursor {
     animation: none;
   }
 }

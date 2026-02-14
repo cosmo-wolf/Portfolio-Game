@@ -3,55 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cosmo Wolf - System v1.0</title>
+  <title>Cosmo Wolf - Terminal Portfolio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Full-screen CRT Terminal -->
-  <div class="terminal-screen">
-    <div class="crt-scanlines"></div>
+  <!-- Terminal Container -->
+  <div class="terminal-wrapper">
+    <!-- CRT Scanlines Overlay -->
+    <div class="scanlines"></div>
     
-    <div class="terminal-content">
+    <!-- Main Terminal -->
+    <div class="terminal">
       <!-- Terminal Header -->
       <div class="terminal-header">
-        <div class="terminal-title">COSMO WOLF - SYSTEM v1.0</div>
-        <div class="status-bar">
-          <span class="status-item">SYS OK</span>
-          <span class="status-item">NET OK</span>
+        <div class="header-title">COSMO WOLF - AURA SENTINEL v1.0</div>
+        <div class="header-status">● CONNECTED</div>
+      </div>
+
+      <!-- Terminal Body -->
+      <div class="terminal-body">
+        <!-- Output Container -->
+        <div id="output" class="terminal-output"></div>
+
+        <!-- Input Line -->
+        <div class="input-line">
+          <span class="prompt">cosmo@aura-sentinel:~$ </span>
+          <input
+            id="terminalInput"
+            class="terminal-input"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <span class="cursor"></span>
         </div>
       </div>
-
-      <!-- Terminal Output (History) -->
-      <div id="terminalOutput" class="terminal-output"></div>
-
-      <!-- Terminal Input Row (Always at bottom) -->
-      <div class="terminal-input-row">
-        <span class="terminal-prompt">[COSMO]$ </span>
-        <input
-          id="terminalInput"
-          class="terminal-input"
-          type="text"
-          spellcheck="false"
-          autocomplete="off"
-          placeholder=""
-          autofocus
-        />
-      </div>
     </div>
   </div>
 
-  <!-- Small Viewport Window (Security Camera Feed) -->
-  <div class="viewport-window">
-    <div class="viewport-header">
-      <span class="viewport-title">[ SPROUT CAM ]</span>
-      <span class="viewport-status">● LIVE</span>
-    </div>
-    <canvas id="gameCanvas" class="game-viewport"></canvas>
-  </div>
-
-  <script type="module" src="js/engine.js"></script>
+  <script type="module" src="js/ui.js"></script>
 </body>
 </html>
