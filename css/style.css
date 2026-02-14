@@ -1,153 +1,302 @@
+/* ============================================
+   RETRO POKÉMON-STYLE PORTFOLIO ENGINE
+   ============================================ */
+
+/* Root color palette (16-color retro) */
 :root {
-  --hud-surface: rgba(248, 245, 229, 0.75);
-  --hud-text: #42532a;
-  --accent: #6e7c3a;
+  --color-primary: #1a1a2e;
+  --color-secondary: #16213e;
+  --color-accent: #0f3460;
+  --color-success: #37d742;
+  --color-error: #ff4444;
+  --color-text: #00ff00;
+  --color-text-dim: #00aa00;
+  --color-bg: #0a0a0a;
+  --font-retro: "Press Start 2P", monospace;
 }
 
-* { box-sizing: border-box; }
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 html, body {
-  margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: "Montserrat", "Segoe UI", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-retro);
+  font-size: 8px;
+  line-height: 1.2;
 }
 
-#world {
-  width: 100vw;
-  height: 100vh;
+/* Canvas - disable smoothing for crisp pixel art */
+#gameCanvas {
   display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
-.hud {
+/* ============================================
+   TERMINAL OVERLAY (GLASSMORPHISM)
+   ============================================ */
+
+.terminal-overlay {
   position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 20;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  background: var(--hud-surface);
-  color: var(--hud-text);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(0px);
+}
+
+.terminal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
   backdrop-filter: blur(8px);
 }
 
-.hud-title { font-weight: 700; font-size: 14px; }
-.hud-help { margin: 8px 0 0; font-size: 12px; }
-.hud-row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-
-.hud-btn {
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--hud-text);
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 12px;
-  padding: 8px 10px;
+.terminal-container {
+  width: 90%;
+  max-width: 720px;
+  height: 80%;
+  max-height: 480px;
+  background: rgba(10, 10, 10, 0.85);
+  border: 2px solid var(--color-text);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 255, 0, 0.1), inset 0 0 20px rgba(0, 255, 0, 0.05);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.explore-bubble {
-  position: fixed;
-  z-index: 21;
-  left: 0;
-  top: 0;
-  transform: translate(-9999px, -9999px);
-  opacity: 0;
-  pointer-events: none;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: var(--hud-surface);
-  color: var(--hud-text);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-}
-
-.explore-bubble.active { opacity: 1; }
-
-.terminal {
-  position: fixed;
-  inset: 7vh 7vw;
-  z-index: 40;
-  border-radius: 14px;
-  overflow: hidden;
-  display: none;
-}
-
-.terminal.open { display: block; }
-
-.terminal.eco-light {
-  background: #fdfdf5;
-  color: #4a5d23;
-  border: 1px solid #a6b57b;
-}
-
-.terminal.matrix-dark {
-  background: #000;
-  color: #00ff41;
-  border: 1px solid #0d641f;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.35);
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .terminal-header {
-  padding: 10px 14px;
-  font: 600 14px/1.2 Montserrat, sans-serif;
-  border-bottom: 1px solid currentColor;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--color-text);
+  background: rgba(0, 170, 0, 0.1);
 }
 
+.terminal-title {
+  color: var(--color-text);
+  letter-spacing: 2px;
+  font-size: 8px;
+}
+
+.terminal-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.terminal-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid var(--color-text);
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.terminal-btn:hover {
+  background: rgba(0, 255, 0, 0.3);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.terminal-btn.close {
+  font-weight: bold;
+}
+
+/* Terminal output area */
 .terminal-output {
-  height: calc(100% - 92px);
-  padding: 10px 14px;
-  overflow: auto;
-  font: 13px/1.45 "Courier New", monospace;
-  position: relative;
-  z-index: 2;
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  font-size: 7px;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: "Courier New", monospace;
+  line-height: 1.4;
 }
 
+.terminal-output::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: rgba(0, 100, 0, 0.2);
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 0, 0.5);
+  border-radius: 2px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 0, 0.8);
+}
+
+.terminal-line {
+  margin-bottom: 4px;
+}
+
+.terminal-line.command {
+  color: var(--color-text);
+}
+
+.terminal-line.output {
+  color: var(--color-text-dim);
+}
+
+.terminal-line.error {
+  color: var(--color-error);
+}
+
+.terminal-line.success {
+  color: var(--color-success);
+}
+
+/* Terminal input row */
 .terminal-input-row {
-  height: 42px;
-  padding: 8px 14px;
   display: flex;
   align-items: center;
+  padding: 8px 12px;
+  border-top: 2px solid var(--color-text);
+  background: rgba(0, 170, 0, 0.05);
   gap: 8px;
-  border-top: 1px solid currentColor;
-  font-family: "Courier New", monospace;
+}
+
+.terminal-prompt {
+  color: var(--color-text);
+  letter-spacing: 1px;
 }
 
 .terminal-input {
   flex: 1;
-  border: 0;
-  outline: 0;
   background: transparent;
-  color: inherit;
-  font: inherit;
+  border: none;
+  color: var(--color-text);
+  font-family: var(--font-retro);
+  font-size: 7px;
+  outline: none;
+  letter-spacing: 1px;
 }
 
-.scan-lines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
+.terminal-input::placeholder {
+  color: var(--color-text-dim);
 }
 
-.matrix-dark .scan-lines {
-  opacity: 1;
-  background: repeating-linear-gradient(to bottom, rgba(0, 255, 65, 0.08), rgba(0, 255, 65, 0.08) 1px, transparent 2px, transparent 4px);
+/* Blinking cursor effect */
+.terminal-input {
+  caret-color: var(--color-text);
 }
 
-.matrix-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  font: 14px/1 monospace;
+/* ============================================
+   HUD (Heads-Up Display)
+   ============================================ */
+
+.hud {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px;
+  background: rgba(10, 10, 10, 0.8);
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  font-size: 6px;
+  letter-spacing: 1px;
+  max-width: 280px;
 }
 
-.matrix-overlay span {
-  position: absolute;
-  color: #00ff41;
+.hud-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-@media (max-width: 700px) {
-  .hud { width: calc(100vw - 16px); left: 8px; top: 8px; }
-  .terminal { inset: 9vh 4vw; }
+.hud-controls p {
+  margin: 0;
+  color: var(--color-text-dim);
+}
+
+kbd {
+  display: inline-block;
+  padding: 2px 4px;
+  margin: 0 2px;
+  background: rgba(0, 170, 0, 0.2);
+  border: 1px solid var(--color-text);
+  border-radius: 2px;
+  font-family: var(--font-retro);
+  font-size: 5px;
+  color: var(--color-text);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 640px) {
+  .terminal-container {
+    width: 95%;
+    height: 90%;
+  }
+
+  .hud {
+    font-size: 5px;
+    padding: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-overlay {
+    transition: none;
+  }
+
+  .terminal-container {
+    animation: none;
+  }
+}
+
+/* Print-friendly styles */
+@media print {
+  body,
+  html {
+    background: white;
+    color: black;
+  }
+
+  .terminal-overlay,
+  .hud {
+    display: none;
+  }
 }

@@ -1,321 +1,326 @@
-import { Avatar } from "./entity.js";
-import { ThemeManager } from "./theme.js";
+import { Player } from "./entity.js";
 import { World } from "./world.js";
+import { CommandParser } from "./ui.js";
 
-const INTERACT_RADIUS = 180;
-
+/**
+ * Input Handler - manages keyboard input for movement and actions
+ */
 class Input {
   constructor(signal) {
     this.keys = new Set();
-    this.pressed = new Set();
-    window.addEventListener("keydown", (e) => this.onDown(e), { signal });
-    window.addEventListener("keyup", (e) => this.onUp(e), { signal });
+    this.justPressed = new Set();
+    
+    window.addEventListener("keydown", (e) => this.onKeyDown(e), { signal });
+    window.addEventListener("keyup", (e) => this.onKeyUp(e), { signal });
   }
-  onDown(e) {
+
+  onKeyDown(e) {
     const code = e.code;
-    if (/^Key[WASDFTL]$/.test(code) || code === "Space") {
-      if (!this.keys.has(code)) this.pressed.add(code);
+    // Support both WASD and Arrow keys
+    const isMovement = /^Key[WSAD]$|^Arrow/.test(code);
+    const isAction = code === "KeyT" || code === "Slash" || code === "KeyT";
+    
+    if (isMovement || isAction) {
+      if (!this.keys.has(code)) {
+        this.justPressed.add(code);
+      }
       this.keys.add(code);
       e.preventDefault();
     }
   }
-  onUp(e) {
-    if (this.keys.has(e.code)) {
-      this.keys.delete(e.code);
-      e.preventDefault();
-    }
+
+  onKeyUp(e) {
+    this.keys.delete(e.code);
   }
-  axis() {
-    return {
-      x: (this.keys.has("KeyD") ? 1 : 0) - (this.keys.has("KeyA") ? 1 : 0),
-      y: (this.keys.has("KeyS") ? 1 : 0) - (this.keys.has("KeyW") ? 1 : 0)
-    };
+
+  /**
+   * Get movement axis (-1, 0, 1) for both dimensions
+   */
+  getMovement() {
+    const x = 
+      (this.keys.has("KeyD") || this.keys.has("ArrowRight") ? 1 : 0) -
+      (this.keys.has("KeyA") || this.keys.has("ArrowLeft") ? 1 : 0);
+    const y = 
+      (this.keys.has("KeyS") || this.keys.has("ArrowDown") ? 1 : 0) -
+      (this.keys.has("KeyW") || this.keys.has("ArrowUp") ? 1 : 0);
+    
+    return { x, y };
   }
-  sprint() { return this.keys.has("Space"); }
-  justPressed(code) { return this.pressed.has(code); }
-  endFrame() { this.pressed.clear(); }
+
+  /**
+   * Check if a key was just pressed this frame
+   */
+  wasPressed(code) {
+    return this.justPressed.has(code);
+  }
+
+  /**
+   * Clear the just-pressed set (call once per frame update)
+   */
+  clearFrame() {
+    this.justPressed.clear();
+  }
 }
 
-class Engine {
+/**
+ * Main Game Engine - orchestrates game loop, rendering, and updates
+ */
+class GameEngine {
   constructor() {
-    this.canvas = document.getElementById("world");
-    this.ctx = this.canvas.getContext("2d", { alpha: false, desynchronized: true });
-    this.avatar = new Avatar();
-    this.theme = new ThemeManager();
+    this.canvas = document.getElementById("gameCanvas");
+    this.ctx = this.canvas.getContext("2d", { 
+      alpha: false,
+      desynchronized: true,
+      willReadFrequently: false
+    });
+    
+    // Game state
+    this.player = new Player(8, 8); // Start at tile (8, 8)
     this.world = new World();
+    this.commandParser = new CommandParser();
+    
+    // Input management
     this.inputAbort = new AbortController();
     this.input = new Input(this.inputAbort.signal);
-    this.camera = { x: 0, y: 0, follow: 0.09 };
-    this.nearStructure = null;
+    
+    // Terminal state
     this.terminalActive = false;
-    this.transition = { active: false, t: 0 };
-    this.matrixChars = [];
-    this.commandHistory = [];
+    
+    // Frame management
     this.lastTs = 0;
-    this.raf = 0;
+    this.frameCount = 0;
     this.running = true;
 
-    this.width = 1;
-    this.height = 1;
-    this.dpr = 1;
-    this.resize();
-    this.cacheUI();
-    this.bindUI();
-    this.bindSystem();
-    this.loop = (ts) => this.tick(ts);
-    this.raf = requestAnimationFrame(this.loop);
+    // Setup
+    this.setupDisplay();
+    this.setupEventListeners();
+    this.startGameLoop();
   }
 
-  cacheUI() {
-    this.avatarButton = document.getElementById("avatarSwitch");
-    this.themeButton = document.getElementById("themeSwitch");
-    this.timeButton = document.getElementById("timeSwitch");
-    this.prompt = document.getElementById("exploreBubble");
-    this.terminal = document.getElementById("terminalRoot");
-    this.terminalOutput = document.getElementById("terminalOutput");
-    this.terminalInput = document.getElementById("terminalInput");
+  /**
+   * Configure canvas and display properties
+   */
+  setupDisplay() {
+    this.handleResize();
+    window.addEventListener("resize", () => this.handleResize(), {
+      signal: this.inputAbort.signal,
+      passive: true
+    });
   }
 
-  bindUI() {
-    this.syncButtons();
-    this.avatarButton.addEventListener("click", () => {
-      this.avatar.toggleJungleForm();
-      this.syncButtons();
+  /**
+   * Handle window resize - maintain pixel-perfect rendering
+   */
+  handleResize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    this.canvas.width = w * dpr;
+    this.canvas.height = h * dpr;
+    this.canvas.style.width = `${w}px`;
+    this.canvas.style.height = `${h}px`;
+
+    // Scale context for DPR
+    this.ctx.scale(dpr, dpr);
+    
+    this.width = w;
+    this.height = h;
+  }
+
+  /**
+   * Setup event listeners for terminal and system events
+   */
+  setupEventListeners() {
+    const terminalOverlay = document.getElementById("terminalOverlay");
+    const terminalInput = document.getElementById("terminalInput");
+    const terminalClose = document.getElementById("terminalClose");
+
+    // Terminal toggle (T key or ?)
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "KeyT" || (e.key === "?" && e.shiftKey)) {
+        this.toggleTerminal();
+        e.preventDefault();
+      }
     }, { signal: this.inputAbort.signal });
-    this.themeButton.addEventListener("click", () => this.toggleBiome(), { signal: this.inputAbort.signal });
-    this.timeButton.addEventListener("click", () => {
-      this.theme.toggleTime();
-      this.syncButtons();
-      this.applyCssTheme();
-    }, { signal: this.inputAbort.signal });
-    this.terminalInput.addEventListener("keydown", (e) => {
+
+    // Terminal command submission
+    terminalInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        this.executeTerminalCommand(this.terminalInput.value.trim());
-        this.terminalInput.value = "";
+        const command = e.target.value.trim();
+        if (command) {
+          this.executeCommand(command);
+          e.target.value = "";
+        }
       }
     }, { signal: this.inputAbort.signal });
-  }
 
-  bindSystem() {
-    window.addEventListener("resize", () => this.resize(), { signal: this.inputAbort.signal, passive: true });
+    // Close terminal button
+    terminalClose.addEventListener("click", () => this.toggleTerminal(), {
+      signal: this.inputAbort.signal
+    });
+
+    // Page visibility
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        this.running = false;
-        cancelAnimationFrame(this.raf);
-      } else {
-        this.running = true;
-        this.lastTs = performance.now();
-        this.raf = requestAnimationFrame(this.loop);
-      }
-    }, { signal: this.inputAbort.signal, passive: true });
-    window.addEventListener("beforeunload", () => this.destroy(), { signal: this.inputAbort.signal, passive: true });
+      this.running = !document.hidden;
+    }, { signal: this.inputAbort.signal });
+
+    // Cleanup on unload
+    window.addEventListener("beforeunload", () => this.destroy(), {
+      signal: this.inputAbort.signal
+    });
   }
 
-  resize() {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    this.canvas.width = Math.max(1, Math.floor(this.width * this.dpr));
-    this.canvas.height = Math.max(1, Math.floor(this.height * this.dpr));
-    this.canvas.style.width = `${this.width}px`;
-    this.canvas.style.height = `${this.height}px`;
-    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-  }
+  /**
+   * Toggle terminal visibility
+   */
+  toggleTerminal() {
+    this.terminalActive = !this.terminalActive;
+    const overlay = document.getElementById("terminalOverlay");
+    const input = document.getElementById("terminalInput");
 
-  tick(ts) {
-    if (!this.running) return;
-    if (!this.lastTs) this.lastTs = ts;
-    let dt = (ts - this.lastTs) / 1000;
-    this.lastTs = ts;
-    if (dt > 0.04) dt = 0.04;
-
-    this.update(dt, ts);
-    this.render(ts);
-    this.input.endFrame();
-    this.raf = requestAnimationFrame(this.loop);
-  }
-
-  update(dt, ts) {
-    if (this.transition.active) {
-      this.transition.t += dt / 0.8;
-      if (this.transition.t >= 1) {
-        this.transition.active = false;
-        this.transition.t = 1;
-        this.terminalActive = !this.terminalActive;
-        this.terminal.classList.toggle("open", this.terminalActive);
-        if (this.terminalActive) this.terminalInput.focus();
-      }
-      this.updateMatrix(dt);
-      return;
-    }
+    overlay.classList.toggle("active", this.terminalActive);
+    
     if (this.terminalActive) {
-      this.updateMatrix(dt);
-      if (this.input.justPressed("KeyT")) this.toggleTerminalMode();
-      return;
-    }
-
-    this.avatar.update(dt, this.input.axis(), this.input.sprint());
-    this.world.update(dt);
-
-    const smooth = 1 - Math.pow(1 - this.camera.follow, dt * 60);
-    this.camera.x += (this.avatar.x - this.camera.x) * smooth;
-    this.camera.y += (this.avatar.y - this.camera.y) * smooth;
-    this.nearStructure = this.world.getNearestStructure(this.avatar.x, this.avatar.y, INTERACT_RADIUS);
-    this.updateInteractionPrompt();
-
-    if (this.input.justPressed("KeyF") && this.nearStructure) {
-      this.handleStructureInteraction(this.nearStructure);
-    }
-    if (this.input.justPressed("KeyL")) this.theme.toggleTerminalMode();
-    if (this.input.justPressed("KeyT")) {
-      this.theme.toggleTime();
-      this.syncButtons();
-      this.applyCssTheme();
-    }
-  }
-
-  updateInteractionPrompt() {
-    if (this.nearStructure) {
-      this.prompt.classList.add("active");
-      this.prompt.textContent = `Press [F] ${this.nearStructure.data.title || this.nearStructure.type}`;
-    } else {
-      this.prompt.classList.remove("active");
-      this.prompt.textContent = "";
-    }
-  }
-
-  handleStructureInteraction(s) {
-    if (s.type === "PORTAL_GATE") this.toggleBiome();
-    else if (s.type === "TERMINAL_GATE") this.startTerminalTransition();
-    else if (s.type === "MONOLITH") this.pushTerminalLine(`${s.data.title}: lore archive synced.`);
-    else if (s.type === "CODE_RUIN_A") this.pushTerminalLine("Ruin A online: A* route stabilized.");
-    else if (s.type === "CODE_RUIN_B") this.pushTerminalLine("Ruin B online: stream parser active.");
-  }
-
-  toggleBiome() {
-    this.theme.toggleBiome();
-    this.avatar.setBiome(this.theme.biome);
-    this.syncButtons();
-    this.applyCssTheme();
-  }
-
-  toggleTerminalMode() {
-    this.theme.toggleTerminalMode();
-    this.applyTerminalSkin();
-  }
-
-  syncButtons() {
-    this.avatarButton.textContent = `Avatar: ${this.avatar.jungleForm}`;
-    this.themeButton.textContent = `Biome: ${this.theme.biome}`;
-    this.timeButton.textContent = `Time: ${this.theme.time}`;
-  }
-
-  applyCssTheme() {
-    const t = this.theme.getWorldTheme();
-    document.documentElement.style.setProperty("--hud-surface", t.uiSurface);
-    document.documentElement.style.setProperty("--hud-text", t.uiText);
-    document.documentElement.style.setProperty("--accent", t.accent);
-  }
-
-  applyTerminalSkin() {
-    const dark = this.theme.terminalMode === "MATRIX_DARK";
-    this.terminal.classList.toggle("matrix-dark", dark);
-    this.terminal.classList.toggle("eco-light", !dark);
-  }
-
-  pushTerminalLine(text) {
-    this.commandHistory.push(text);
-    if (this.commandHistory.length > 32) this.commandHistory.shift();
-    this.renderTerminalOutput();
-  }
-
-  renderTerminalOutput() {
-    this.terminalOutput.innerHTML = this.commandHistory.map((line) => `<div>${line}</div>`).join("");
-    this.terminalOutput.scrollTop = this.terminalOutput.scrollHeight;
-  }
-
-  executeTerminalCommand(raw) {
-    if (!raw) return;
-    this.pushTerminalLine(`> ${raw}`);
-    if (raw === "help") {
-      this.pushTerminalLine("Commands: ls, help, python sentinel.py, theme --toggle");
-    } else if (raw === "ls") {
-      this.pushTerminalLine("about projects ruins portal terminal");
-    } else if (raw === "python sentinel.py") {
-      this.pushTerminalLine("sentinel.py: biome integrity = OK, city neon = armed");
-    } else if (raw === "theme --toggle") {
-      this.toggleTerminalMode();
-      this.pushTerminalLine(`terminal mode -> ${this.theme.terminalMode}`);
-    } else {
-      this.pushTerminalLine("unknown command");
-    }
-  }
-
-  updateMatrix(dt) {
-    if (this.theme.terminalMode !== "MATRIX_DARK") return;
-    if (!this.matrixChars.length) {
-      for (let i = 0; i < 48; i += 1) {
-        this.matrixChars.push({ x: Math.random(), y: Math.random(), s: 0.1 + Math.random() * 0.4 });
+      input.focus();
+      // Clear output and show help on open
+      if (document.getElementById("terminalOutput").children.length === 0) {
+        this.executeCommand("help");
       }
     }
-    for (let i = 0; i < this.matrixChars.length; i += 1) {
-      const c = this.matrixChars[i];
-      c.y += dt * c.s * 0.35;
-      if (c.y > 1.2) c.y = -0.1;
+  }
+
+  /**
+   * Execute terminal command
+   */
+  executeCommand(command) {
+    const output = document.getElementById("terminalOutput");
+    const parser = this.commandParser;
+
+    // Display command
+    const cmdLine = document.createElement("div");
+    cmdLine.className = "terminal-line command";
+    cmdLine.textContent = `$ ${command}`;
+    output.appendChild(cmdLine);
+
+    // Parse and execute
+    let result = "";
+    const parts = command.toLowerCase().split(/\s+/);
+    const cmd = parts[0];
+
+    switch (cmd) {
+      case "help":
+      case "?":
+        result = parser.getHelpText();
+        break;
+      case "about":
+        result = parser.getAboutText();
+        break;
+      case "projects":
+        result = parser.getProjectsText();
+        break;
+      case "status":
+        result = this.getPlayerStatus();
+        break;
+      case "clear":
+        output.innerHTML = "";
+        return;
+      default:
+        result = `Unknown command: ${command}. Type 'help' for available commands.`;
     }
+
+    // Display result
+    const resultLine = document.createElement("div");
+    resultLine.className = "terminal-line output";
+    resultLine.textContent = result;
+    output.appendChild(resultLine);
+
+    // Auto-scroll to bottom
+    output.scrollTop = output.scrollHeight;
   }
 
-  render(ts) {
-    const theme = this.theme.getWorldTheme();
-    this.world.draw(this.ctx, this.camera, this.width, this.height, theme, this.theme.biome, this.theme.isNight(), ts);
-    const sx = this.avatar.x - this.camera.x + this.width * 0.5;
-    const sy = this.avatar.y - this.camera.y + this.height * 0.5;
-    this.avatar.draw(this.ctx, sx, sy, this.theme.isNight());
-    this.prompt.style.transform = `translate(${sx}px, ${sy - this.avatar.size - 20}px) translate(-50%, -120%)`;
-    if (this.transition.active) this.drawTransition();
-    if (this.terminalActive) this.drawMatrixOverlay();
+  /**
+   * Get current player status for terminal
+   */
+  getPlayerStatus() {
+    const tile = this.world.getTile(this.player.gridX, this.player.gridY);
+    const tileType = tile ? tile.type : "unknown";
+    return `Player at grid(${this.player.gridX}, ${this.player.gridY}) on ${tileType}`;
   }
 
-  drawTransition() {
-    const z = this.transition.t;
-    const alpha = z < 0.5 ? z * 1.6 : (1 - z) * 1.6;
-    this.ctx.fillStyle = `rgba(255,255,255,${Math.max(0, alpha)})`;
+  /**
+   * Main game loop - called via requestAnimationFrame
+   */
+  startGameLoop = () => {
+    const loop = (timestamp) => {
+      if (!this.running) {
+        requestAnimationFrame(loop);
+        return;
+      }
+
+      if (!this.lastTs) this.lastTs = timestamp;
+      const deltaTime = Math.min((timestamp - this.lastTs) / 1000, 0.04);
+      this.lastTs = timestamp;
+
+      this.update(deltaTime);
+      this.render();
+      this.input.clearFrame();
+      this.frameCount++;
+
+      requestAnimationFrame(loop);
+    };
+
+    requestAnimationFrame(loop);
+  };
+
+  /**
+   * Update game state
+   */
+  update(dt) {
+    if (this.terminalActive) return; // Freeze game while terminal open
+
+    const movement = this.input.getMovement();
+    this.player.update(dt, movement, this.world);
+  }
+
+  /**
+   * Render game frame
+   */
+  render() {
+    // Clear canvas
+    this.ctx.fillStyle = "#000";
     this.ctx.fillRect(0, 0, this.width, this.height);
-    this.ctx.strokeStyle = "rgba(0,255,65,0.65)";
-    this.ctx.lineWidth = 2;
-    const r = Math.max(10, 260 * (1 - z));
-    this.ctx.beginPath();
-    this.ctx.arc(this.width * 0.5, this.height * 0.5, r, 0, Math.PI * 2);
-    this.ctx.stroke();
+
+    // Draw world relative to player
+    this.world.render(this.ctx, this.player, this.width, this.height);
+
+    // Draw player in center
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    this.player.render(this.ctx, centerX, centerY);
+
+    // Draw HUD info (optional)
+    this.drawHUD();
   }
 
-  drawMatrixOverlay() {
-    if (this.theme.terminalMode !== "MATRIX_DARK") return;
-    const overlay = document.getElementById("matrixOverlay");
-    overlay.innerHTML = this.matrixChars.map((c, i) => {
-      const x = Math.floor(c.x * 100);
-      const y = Math.floor(c.y * 100);
-      const char = String.fromCharCode(0x30a0 + ((i * 17 + Math.floor(c.y * 1000)) % 96));
-      return `<span style="left:${x}%;top:${y}%;opacity:${0.35 + c.s};">${char}</span>`;
-    }).join("");
+  /**
+   * Draw heads-up display elements
+   */
+  drawHUD() {
+    // Could add FPS counter, minimap, etc here
+    // Keep minimal for performance
   }
 
-  startTerminalTransition() {
-    if (this.transition.active) return;
-    this.transition.active = true;
-    this.transition.t = 0;
-  }
-
+  /**
+   * Cleanup on destroy
+   */
   destroy() {
     this.running = false;
-    cancelAnimationFrame(this.raf);
     this.inputAbort.abort();
   }
 }
 
+// Initialize game when DOM is ready
 window.addEventListener("DOMContentLoaded", () => {
-  const engine = new Engine();
-  engine.applyCssTheme();
-  engine.applyTerminalSkin();
-  engine.pushTerminalLine("Digital Dive ready. Type help.");
+  const engine = new GameEngine();
 });
