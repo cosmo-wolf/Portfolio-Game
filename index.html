@@ -3,45 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cosmo Wolf - Retro Portfolio</title>
+  <title>Cosmo Wolf - System v1.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-
-  <div id="terminalOverlay" class="terminal-overlay">
-    <div class="terminal-container">
+  <!-- Full-screen CRT Terminal -->
+  <div class="terminal-screen">
+    <div class="crt-scanlines"></div>
+    
+    <div class="terminal-content">
+      <!-- Terminal Header -->
       <div class="terminal-header">
-        <div class="terminal-title">Cosmo's Terminal v1.0</div>
-        <div class="terminal-buttons">
-          <button class="terminal-btn close" id="terminalClose">×</button>
+        <div class="terminal-title">COSMO WOLF - SYSTEM v1.0</div>
+        <div class="status-bar">
+          <span class="status-item">SYS OK</span>
+          <span class="status-item">NET OK</span>
         </div>
       </div>
 
+      <!-- Terminal Output (History) -->
       <div id="terminalOutput" class="terminal-output"></div>
 
+      <!-- Terminal Input Row (Always at bottom) -->
       <div class="terminal-input-row">
-        <span class="terminal-prompt">$ </span>
+        <span class="terminal-prompt">[COSMO]$ </span>
         <input
           id="terminalInput"
           class="terminal-input"
           type="text"
           spellcheck="false"
           autocomplete="off"
-          placeholder="type 'help' for commands..."
+          placeholder=""
+          autofocus
         />
       </div>
     </div>
   </div>
 
-  <div id="hud" class="hud">
-    <div class="hud-controls">
-      <p>Movement: <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></p>
-      <p>Terminal: <kbd>T</kbd> | Help: <kbd>?</kbd></p>
+  <!-- Small Viewport Window (Security Camera Feed) -->
+  <div class="viewport-window">
+    <div class="viewport-header">
+      <span class="viewport-title">[ SPROUT CAM ]</span>
+      <span class="viewport-status">● LIVE</span>
     </div>
+    <canvas id="gameCanvas" class="game-viewport"></canvas>
   </div>
 
   <script type="module" src="js/engine.js"></script>

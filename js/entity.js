@@ -39,11 +39,33 @@ export class Player {
    */
   loadSpriteSheet() {
     this.spriteSheet = new Image();
-    // Point to your character sheet in assets/sprites/
-    this.spriteSheet.src = "assets/sprites/character.png";
-    this.spriteSheet.onload = () => {
-      // Spritesheet loaded and ready
+    // Dynamically find character sprite from Sprout Lands folder structure
+    const spriteOptions = [
+      "Sprout Lands - Sprites - Basic pack/Characters/Basic Charakter Spritesheet.png",
+      "assets/sprites/character.png",
+      "Sprout Lands - Sprites - Basic pack/Characters/Free Chicken Sprites.png"
+    ];
+    
+    // Try each path until one loads successfully
+    const tryLoadSprite = (paths, index = 0) => {
+      if (index >= paths.length) {
+        console.warn("Could not load character spritesheet from any path");
+        return;
+      }
+      
+      const testImg = new Image();
+      testImg.onload = () => {
+        this.spriteSheet = testImg;
+        console.log(`Loaded character sprite: ${paths[index]}`);
+      };
+      testImg.onerror = () => {
+        console.log(`Path failed: ${paths[index]}`);
+        tryLoadSprite(paths, index + 1);
+      };
+      testImg.src = paths[index];
     };
+    
+    tryLoadSprite(spriteOptions);
   }
 
   /**

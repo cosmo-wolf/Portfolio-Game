@@ -97,14 +97,38 @@ export class World {
 
   /**
    * Load the tileset image
-   * Expected: assets/sprites/tileset.png with Sprout Lands tiles
+   * Dynamically searches Sprout Lands folder structure
    */
   loadTileSet() {
     this.tileSet = new Image();
-    this.tileSet.src = "assets/sprites/tileset.png";
-    this.tileSet.onload = () => {
-      // Tileset loaded
+    
+    // Try multiple tileset options from Sprout Lands structure
+    const tilesetOptions = [
+      "Sprout Lands - Sprites - Basic pack/Tilesets/Grass.png",
+      "Sprout Lands - Sprites - Basic pack/Tilesets/Wooden House.png",
+      "assets/sprites/tileset.png",
+      "Sprout Lands - Sprites - Basic pack/Tilesets/Water.png"
+    ];
+    
+    const tryLoadTileset = (paths, index = 0) => {
+      if (index >= paths.length) {
+        console.warn("Could not load tileset from any path");
+        return;
+      }
+      
+      const testImg = new Image();
+      testImg.onload = () => {
+        this.tileSet = testImg;
+        console.log(`Loaded tileset: ${paths[index]}`);
+      };
+      testImg.onerror = () => {
+        console.log(`Path failed: ${paths[index]}`);
+        tryLoadTileset(paths, index + 1);
+      };
+      testImg.src = paths[index];
     };
+    
+    tryLoadTileset(tilesetOptions);
   }
 
   /**
