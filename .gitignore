@@ -1,0 +1,17 @@
+# --- Python Junk ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# --- JavaScript / Web Junk ---
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+
+# --- IDE Specific ---
+.vscode/
+.idea/

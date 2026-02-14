@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Biome Portfolio Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="world"></canvas>
+
+  <section class="hud">
+    <div class="hud-title">Multi-Biome Portfolio Engine</div>
+    <p class="hud-help">Move <code>W A S D</code>, Interact <code>F</code>, Sprint <code>Space</code>.</p>
+    <p class="hud-help">Toggle time <code>T</code>. Terminal skin <code>L</code>.</p>
+    <div class="hud-row">
+      <button id="avatarSwitch" class="hud-btn" type="button">Avatar: TORTOISE</button>
+      <button id="themeSwitch" class="hud-btn" type="button">Biome: JUNGLE</button>
+      <button id="timeSwitch" class="hud-btn" type="button">Time: DAY</button>
+    </div>
+  </section>
+
+  <div id="exploreBubble" class="explore-bubble">Press E to Explore</div>
+
+  <section id="terminalRoot" class="terminal eco-light" aria-hidden="true">
+    <div id="matrixOverlay" class="matrix-overlay"></div>
+    <div class="scan-lines"></div>
+    <div class="terminal-header">Ancient Console</div>
+    <div id="terminalOutput" class="terminal-output"></div>
+    <div class="terminal-input-row">
+      <span>&gt;</span>
+      <input id="terminalInput" class="terminal-input" type="text" spellcheck="false" autocomplete="off" />
+    </div>
+  </section>
+
+  <script type="module" src="js/engine.js"></script>
+</body>
+</html>
